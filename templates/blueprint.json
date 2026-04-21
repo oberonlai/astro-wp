@@ -1,0 +1,14 @@
+{
+  "landingPage": "/wp-admin/",
+  "login": true,
+  "steps": [
+    {
+      "step": "activatePlugin",
+      "pluginPath": "astro-cms-connect/astro-cms-connect.php"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require '/wordpress/wp-load.php'; $user = get_user_by('login', 'admin'); if (!$user) { echo 'User not found'; exit(1); } $result = WP_Application_Passwords::create_new_application_password($user->ID, array('name' => 'Astro CMS Connect', 'app_id' => '')); if (is_wp_error($result)) { echo 'Error: ' . $result->get_error_message(); exit(1); } $password = $result[0]; file_put_contents('/wordpress/wp-content/astro-cms-connect-app-password.txt', $password); echo 'Application Password created successfully.'; ?>"
+    }
+  ]
+}
