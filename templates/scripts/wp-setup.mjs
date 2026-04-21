@@ -29,11 +29,11 @@ const WP_URL = `http://127.0.0.1:${PORT}`;
 async function waitForWordPress(url, maxRetries = 30) {
 	for (let i = 0; i < maxRetries; i++) {
 		try {
-			const res = await fetch(`${url}/wp-json/wp/v2/types`, {
+			const res = await fetch(`${url}/wp-json/`, {
 				signal: AbortSignal.timeout(3000),
 				redirect: "follow",
 			});
-			if (res.ok || res.status === 302) return true;
+			if (res.ok) return true;
 		} catch {
 			// Not ready yet.
 		}

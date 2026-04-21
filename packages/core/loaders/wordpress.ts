@@ -174,44 +174,53 @@ async function wpFetch(
 	url: string,
 	credentials: string,
 ): Promise<Response> {
+	const maxRedirects = 5;
+	let currentUrl = url;
+
+	for (let i = 0; i <= maxRedirects; i++) {
+		const headers: Record<string, string> = {
+			Authorization: `Basic ${credentials}`,
+		};
+		if (_cachedCookies) {
+			headers["Cookie"] = _cachedCookies;
+		}
+
+		const response = await fetch(currentUrl, {
+			headers,
+			redirect: "manual",
+		});
+
+		// Handle Playground auto-login redirect chain.
+		if (response.status >= 300 && response.status < 400) {
+			const setCookies = response.headers.getSetCookie
+				? response.headers.getSetCookie()
+				: [];
+			if (setCookies.length > 0) {
+				_cachedCookies = setCookies
+					.map((c) => c.split(";")[0])
+					.join("; ");
+			}
+
+			const location = response.headers.get("location") || "";
+			if (!location) return response;
+
+			currentUrl = location.startsWith("http")
+				? location
+				: new URL(location, currentUrl).href;
+			continue;
+		}
+
+		return response;
+	}
+
+	// Exceeded max redirects — return the last response as-is.
 	const headers: Record<string, string> = {
 		Authorization: `Basic ${credentials}`,
 	};
 	if (_cachedCookies) {
 		headers["Cookie"] = _cachedCookies;
 	}
-
-	const response = await fetch(url, {
-		headers,
-		redirect: "manual",
-	});
-
-	// Handle Playground auto-login redirect.
-	if (response.status === 302) {
-		const setCookies = response.headers.getSetCookie
-			? response.headers.getSetCookie()
-			: [];
-		if (setCookies.length > 0) {
-			_cachedCookies = setCookies
-				.map((c) => c.split(";")[0])
-				.join("; ");
-		}
-
-		const location = response.headers.get("location") || "";
-		const redirectUrl = location.startsWith("http")
-			? location
-			: new URL(location, url).href;
-
-		return fetch(redirectUrl, {
-			headers: {
-				Authorization: `Basic ${credentials}`,
-				Cookie: _cachedCookies,
-			},
-			redirect: "manual",
-		});
-	}
-
-	return response;
+	return fetch(currentUrl, { headers, redirect: "manual" });
 }
 
 /**
@@ -398,6 +407,12 @@ export function wpLoader(): Loader {
 						body,
 					});
 				}
+
+				console.log("");
+				console.log("  ┌─────────────────────────────────────────────────┐");
+				console.log(`  │  WP Admin  ${url}/wp-admin`.padEnd(51) + "│");
+				console.log("  └─────────────────────────────────────────────────┘");
+				console.log("");
 			} catch (error) {
 				logger.error(
 					`Failed to fetch WordPress content: ${error instanceof Error ? error.message : String(error)}`,

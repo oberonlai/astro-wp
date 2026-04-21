@@ -214,7 +214,7 @@ Add these scripts (preserve existing scripts):
 ```json
 {
   "wp:setup": "node scripts/wp-setup.mjs",
-  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888"
+  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 2>&1 | grep -v 'Cannot unzip'"
 }
 ```
 
@@ -224,7 +224,7 @@ Modify the `dev` script to start WordPress alongside Astro. **Choose based on OS
 
 ```json
 {
-  "dev": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 & sleep 10 && astro dev"
+  "dev": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 2>&1 | grep -v 'Cannot unzip' & sleep 10 && astro dev"
 }
 ```
 
@@ -232,7 +232,7 @@ Modify the `dev` script to start WordPress alongside Astro. **Choose based on OS
 
 ```json
 {
-  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install-dir \"./wordpress/site\" \"/wordpress\" --mount-dir \"./wordpress/plugins/astro-cms-connect\" \"/wordpress/wp-content/plugins/astro-cms-connect\" --blueprint=blueprint.json --port=8888",
+  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install-dir \"./wordpress/site\" \"/wordpress\" --mount-dir \"./wordpress/plugins/astro-cms-connect\" \"/wordpress/wp-content/plugins/astro-cms-connect\" --blueprint=blueprint.json --port=8888 2>&1 | findstr /V \"Cannot unzip\"",
   "dev": "concurrently \"npm run wp:start\" \"node -e \\\"setTimeout(()=>{},10000)\\\" && astro dev\""
 }
 ```
