@@ -16,6 +16,9 @@
     "turndown": "^7.2.4",
     "turndown-plugin-gfm": "^1.0.2"
   },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.mjs"
+  },
   "devDependencies": {
     "@types/turndown": "^5.0.6"
   }
