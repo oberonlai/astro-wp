@@ -95,6 +95,7 @@ Copy from this repo to the target Astro project:
 | `packages/core/loaders/wordpress.ts` | `src/loaders/wordpress.ts` |
 | `packages/core/loaders/turndown-plugin-gfm.d.ts` | `src/loaders/turndown-plugin-gfm.d.ts` |
 | `packages/core/merged-categories.ts` | `src/utils/merged-categories.ts` |
+| `packages/core/integrations/wp-dev-reload.ts` | `src/integrations/wp-dev-reload.ts` |
 | `packages/wordpress-plugin/` (entire directory) | `wordpress/plugins/astro-cms-connect/` |
 | `templates/wp-bridge.config.ts` | `wp-bridge.config.ts` (project root) |
 | `templates/blueprint.json` | `blueprint.json` (project root) |
@@ -198,7 +199,46 @@ Handle optional fields that may only exist in one collection:
 const sessionSlug = "sessionSlug" in post.data ? post.data.sessionSlug : undefined;
 ```
 
-### Step 7: Update .gitignore
+### Step 7: Enable dev auto-reload
+
+Register the `wpDevReload` integration in `astro.config.mjs` and inject a poll script into the page head.
+
+**astro.config.mjs:**
+
+```ts
+import { wpDevReload } from './src/integrations/wp-dev-reload';
+
+export default defineConfig({
+  integrations: [mdx(), sitemap(), wpDevReload()],
+});
+```
+
+In `src/integrations/wp-dev-reload.ts`, fix the import path to resolve `wp-bridge.config.ts` at the project root:
+
+```ts
+// If integration is at src/integrations/wp-dev-reload.ts (2 levels deep):
+import wpBridgeConfig from "../../wp-bridge.config";
+```
+
+**BaseHead or layout `<head>`:**
+
+Add the following inside the `<head>` tag of the project's base layout or head component. This only runs during dev:
+
+```astro
+{import.meta.env.DEV && (
+  <script is:inline>
+    (() => {
+      const tick = () => fetch('/_wp_check').catch(() => {});
+      tick();
+      setInterval(tick, 3000);
+    })();
+  </script>
+)}
+```
+
+This polls the dev server every 3 seconds. When a WordPress post is saved, the page auto-reloads with the updated content.
+
+### Step 8: Update .gitignore
 
 Add these lines:
 
@@ -207,7 +247,7 @@ wordpress/site/
 src/config/wp-categories.json
 ```
 
-### Step 8: Update package.json scripts
+### Step 9: Update package.json scripts
 
 Add these scripts (preserve existing scripts):
 
@@ -237,7 +277,7 @@ Modify the `dev` script to start WordPress alongside Astro. **Choose based on OS
 }
 ```
 
-### Step 9: First-time setup
+### Step 10: First-time setup
 
 ```bash
 npm run wp:setup
@@ -249,7 +289,7 @@ This automatically:
 3. Creates an Application Password
 4. Writes the password to `wp-bridge.config.ts`
 
-### Step 10: Verify
+### Step 11: Verify
 
 ```bash
 npm run dev
@@ -257,7 +297,7 @@ npm run dev
 
 1. Open `http://127.0.0.1:8888/wp-admin` — WordPress admin (auto-login)
 2. Create a post in WordPress
-3. Restart Astro dev server — the post should appear on the frontend
+3. The post should appear on the frontend within a few seconds (auto-reload)
 
 ## How It Works
 

@@ -1,0 +1,19 @@
+<!--
+  WordPress Dev Poll Script
+
+  Add this snippet inside the <head> of your layout or BaseHead component.
+  It polls the dev server every 3 seconds to check for WordPress content
+  changes. Only runs in dev mode (import.meta.env.DEV).
+
+  Example (Astro component):
+
+  {import.meta.env.DEV && (
+    <script is:inline>
+      (() => {
+        const tick = () => fetch('/_wp_check').catch(() => {});
+        tick();
+        setInterval(tick, 3000);
+      })();
+    </script>
+  )}
+-->

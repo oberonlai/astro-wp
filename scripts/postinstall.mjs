@@ -136,6 +136,25 @@ copyIfMissing(
 	"src/loaders/turndown-plugin-gfm.d.ts",
 );
 
+// --- 3b. Integration file ---
+
+const integrationSrc = resolve(PKG_ROOT, "packages/core/integrations/wp-dev-reload.ts");
+const integrationDest = resolve(projectRoot, "src/integrations/wp-dev-reload.ts");
+
+if (!existsSync(integrationDest)) {
+	mkdirSync(dirname(integrationDest), { recursive: true });
+	// Fix import path: from packages/core/integrations/ (3 levels) to src/integrations/ (2 levels).
+	let integrationContent = readFileSync(integrationSrc, "utf-8");
+	integrationContent = integrationContent.replace(
+		/from\s+["']\.\.\/\.\.\/\.\.\/wp-bridge\.config["']/,
+		'from "../../wp-bridge.config"',
+	);
+	writeFileSync(integrationDest, integrationContent, "utf-8");
+	console.log("  + src/integrations/wp-dev-reload.ts");
+} else {
+	console.log("  ✓ src/integrations/wp-dev-reload.ts (already exists)");
+}
+
 // --- 4. Update package.json scripts ---
 
 const pkgPath = resolve(projectRoot, "package.json");
@@ -217,6 +236,8 @@ console.log("  │  Next steps:                                         │");
 console.log("  │  1. Run: npm run wp:setup                            │");
 console.log("  │  2. Add wpPosts collection to content.config.ts      │");
 console.log("  │  3. Merge collections in your page files             │");
-console.log("  │  4. Run: npm run dev                                 │");
+console.log("  │  4. Register wpDevReload() in astro.config.mjs       │");
+console.log("  │  5. Add poll script to <head> (see README Step 7)    │");
+console.log("  │  6. Run: npm run dev                                 │");
 console.log("  └──────────────────────────────────────────────────────┘");
 console.log("");
