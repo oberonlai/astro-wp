@@ -3,10 +3,13 @@ import wpBridgeConfig from "../../../wp-bridge.config";
 
 /**
  * Server-side fetch that handles WP Playground's auto-login 302 with cookies.
+ * `origin` is sent as X-Astro-Origin so the WP plugin can auto-discover the
+ * Astro frontend URL and rewrite admin permalinks without manual setup.
  */
 async function wpFetch(
 	url: string,
 	cookieJar: { value: string },
+	origin?: string | null,
 ): Promise<Response> {
 	const { username, password } = wpBridgeConfig.wordpress.auth;
 	const credentials = Buffer.from(`${username}:${password}`).toString(
@@ -17,6 +20,7 @@ async function wpFetch(
 		const headers: Record<string, string> = {
 			Authorization: `Basic ${credentials}`,
 		};
+		if (origin) headers["X-Astro-Origin"] = origin;
 		if (cookieJar.value) headers.Cookie = cookieJar.value;
 		const res = await fetch(currentUrl, { headers, redirect: "manual" });
 		const setCookies = res.headers.getSetCookie
@@ -70,16 +74,23 @@ export function wpDevReload(): AstroIntegration {
 				let hasSynced = false;
 				let refreshing = false;
 
-				server.middlewares.use("/_wp_check", async (_req, res) => {
+				server.middlewares.use("/_wp_check", async (req, res) => {
 					res.setHeader("Content-Type", "application/json");
 					if (refreshing) {
 						res.statusCode = 200;
 						return res.end(JSON.stringify({ status: "busy" }));
 					}
+					// Derive Astro's own origin from the browser request so WP can
+					// rewrite admin links without the user configuring anything.
+					const host = req.headers.host;
+					const proto =
+						(req.headers["x-forwarded-proto"] as string) || "http";
+					const origin = host ? `${proto}://${host}` : null;
 					try {
 						const r = await wpFetch(
 							`${wpUrl}/wp-json/wp/v2/posts?per_page=1&orderby=modified&order=desc&_fields=modified_gmt`,
 							cookieJar,
+							origin,
 						);
 						if (!r.ok) {
 							res.statusCode = 200;
