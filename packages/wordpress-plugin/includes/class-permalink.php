@@ -39,6 +39,32 @@ class Cdx_Permalink {
 		add_filter( 'post_type_link', array( $this, 'rewrite_post_link' ), 10, 2 );
 		add_filter( 'preview_post_link', array( $this, 'rewrite_preview_link' ), 10, 2 );
 		add_filter( 'page_link', array( $this, 'rewrite_post_link' ), 10, 2 );
+
+		// Late priority so we override core nodes after they're added.
+		add_action( 'admin_bar_menu', array( $this, 'rewrite_admin_bar' ), 100 );
+	}
+
+	/**
+	 * Rewrite admin bar "Visit Site" / site name link to point at Astro home.
+	 * Doesn't touch home_url() itself (unsafe — breaks cookies, oEmbed, REST).
+	 *
+	 * @param WP_Admin_Bar $wp_admin_bar Admin bar instance.
+	 */
+	public function rewrite_admin_bar( $wp_admin_bar ) {
+		$base = $this->get_base_url();
+		if ( ! $base ) {
+			return;
+		}
+		$base = rtrim( $base, '/' ) . '/';
+
+		// Main site-name node (top-left site title in admin).
+		foreach ( array( 'site-name', 'view-site' ) as $node_id ) {
+			$node = $wp_admin_bar->get_node( $node_id );
+			if ( $node ) {
+				$node->href = $base;
+				$wp_admin_bar->add_node( (array) $node );
+			}
+		}
 	}
 
 	/**
