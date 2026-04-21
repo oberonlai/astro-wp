@@ -48,13 +48,34 @@ Before making any changes, read and understand the target project:
    - What components are used (related posts, navigation, etc.)
    - How the article body is rendered
 
+5. Detect the package manager — check which lock file exists:
+   - `pnpm-lock.yaml` → use `pnpm`
+   - `yarn.lock` → use `yarn`
+   - `bun.lockb` → use `bun`
+   - `package-lock.json` or none → use `npm`
+   - If multiple lock files exist, use the one matching the lock file that is git-tracked (check with `git ls-files`). Delete the other lock file silently.
+   - **Do not ask the user which package manager to use.** Detect and proceed.
+
+6. If the project has no category/taxonomy system, skip `merged-categories.ts` in Step 2 and skip Step 4's category-related changes.
+
 This analysis determines how to adapt the installation to this specific project.
 
 ### Step 1: Install dependencies
 
+Use the detected package manager from Step 0:
+
 ```bash
+# npm
 npm install turndown turndown-plugin-gfm
 npm install -D @types/turndown
+
+# pnpm
+pnpm add turndown turndown-plugin-gfm
+pnpm add -D @types/turndown
+
+# yarn
+yarn add turndown turndown-plugin-gfm
+yarn add -D @types/turndown
 ```
 
 ### Step 2: Copy files to the target project
