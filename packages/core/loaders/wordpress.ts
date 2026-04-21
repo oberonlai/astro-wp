@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { createMarkdownProcessor } from "@astrojs/markdown-remark";
 import type { Loader } from "astro/loaders";
 import TurndownService from "turndown";
 import { gfm } from "turndown-plugin-gfm";
@@ -393,9 +394,12 @@ export function wpLoader(): Loader {
 					`Synced ${categories.list.length} categories from WordPress.`,
 				);
 
+				const processor = await createMarkdownProcessor({});
+
 				for (const post of posts) {
 					const category = resolveCategory(post, categories.map);
 					const body = htmlToMarkdown(post.content.rendered);
+					const rendered = await processor.render(body);
 
 					store.set({
 						id: post.slug,
@@ -405,12 +409,18 @@ export function wpLoader(): Loader {
 							pubDate: new Date(post.date),
 						},
 						body,
+						rendered: {
+							html: rendered.code,
+							metadata: rendered.metadata as Record<string, unknown>,
+						},
 					});
 				}
 
 				console.log("");
 				console.log("  ┌─────────────────────────────────────────────────┐");
-				console.log(`  │  WP Admin  ${url}/wp-admin`.padEnd(51) + "│");
+				console.log(`  │  WP Admin   ${url}/wp-admin`.padEnd(51) + "│");
+				console.log(`  │  Username   admin`.padEnd(51) + "│");
+				console.log(`  │  Password   password`.padEnd(51) + "│");
 				console.log("  └─────────────────────────────────────────────────┘");
 				console.log("");
 			} catch (error) {
