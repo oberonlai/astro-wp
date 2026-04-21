@@ -21,7 +21,7 @@ const WP_SITE_DIR = resolve(ROOT, "wordpress/site");
 const PASSWORD_FILE = resolve(WP_SITE_DIR, "wp-content/astro-cms-connect-app-password.txt");
 const CONFIG_FILE = resolve(ROOT, "wp-bridge.config.ts");
 const PORT = 8888;
-const WP_URL = `http://localhost:${PORT}`;
+const WP_URL = `http://127.0.0.1:${PORT}`;
 
 /**
  * Wait for WordPress to respond on the given URL.
@@ -103,19 +103,31 @@ async function main() {
 
 	console.log("  Starting WordPress Playground CLI...\n");
 
+	const isWindows = process.platform === "win32";
+
+	const mountArgs = isWindows
+		? [
+				"--mount-before-install-dir", WP_SITE_DIR, "/wordpress",
+				"--mount-dir", "./wordpress/plugins/astro-cms-connect", "/wordpress/wp-content/plugins/astro-cms-connect",
+			]
+		: [
+				`--mount-before-install=${WP_SITE_DIR}:/wordpress`,
+				"--mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect",
+			];
+
 	const wpProcess = spawn(
 		"npx",
 		[
 			"@wp-playground/cli@latest",
 			"server",
-			`--mount-before-install=${WP_SITE_DIR}:/wordpress`,
-			`--mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect`,
+			...mountArgs,
 			"--blueprint=blueprint.json",
 			`--port=${PORT}`,
 		],
 		{
 			cwd: ROOT,
 			stdio: ["ignore", "pipe", "pipe"],
+			shell: true,
 		},
 	);
 

@@ -58,6 +58,14 @@ Before making any changes, read and understand the target project:
 
 6. If the project has no category/taxonomy system, skip `merged-categories.ts` in Step 2 and skip Step 4's category-related changes.
 
+7. Detect the operating system and adapt accordingly:
+   - **macOS / Linux**: use shell commands as-is
+   - **Windows**: apply these adjustments throughout the installation:
+     - `dev` script: replace `cmd1 & sleep 10 && cmd2` with `concurrently` (install `concurrently` as devDependency)
+     - `--mount=` flag: replace with `--mount-dir` flag (Windows-friendly format)
+     - `wp-setup.mjs`: the script already uses `shell: true` in spawn, which handles `.cmd` extensions on Windows
+   - **Do not ask the user which OS they are on.** Use `process.platform` or check the shell environment.
+
 This analysis determines how to adapt the installation to this specific project.
 
 ### Step 1: Install dependencies
@@ -210,11 +218,22 @@ Add these scripts (preserve existing scripts):
 }
 ```
 
-Modify the `dev` script to start WordPress alongside Astro:
+Modify the `dev` script to start WordPress alongside Astro. **Choose based on OS detected in Step 0:**
+
+**macOS / Linux:**
 
 ```json
 {
   "dev": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 & sleep 10 && astro dev"
+}
+```
+
+**Windows** (install `concurrently` first: `npm install -D concurrently`):
+
+```json
+{
+  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install-dir \"./wordpress/site\" \"/wordpress\" --mount-dir \"./wordpress/plugins/astro-cms-connect\" \"/wordpress/wp-content/plugins/astro-cms-connect\" --blueprint=blueprint.json --port=8888",
+  "dev": "concurrently \"npm run wp:start\" \"node -e \\\"setTimeout(()=>{},10000)\\\" && astro dev\""
 }
 ```
 
@@ -236,7 +255,7 @@ This automatically:
 npm run dev
 ```
 
-1. Open `http://localhost:8888/wp-admin` — WordPress admin (auto-login)
+1. Open `http://127.0.0.1:8888/wp-admin` — WordPress admin (auto-login)
 2. Create a post in WordPress
 3. Restart Astro dev server — the post should appear on the frontend
 
@@ -245,7 +264,7 @@ npm run dev
 ### Content Flow
 
 ```
-WordPress (localhost:8888)
+WordPress (127.0.0.1:8888)
     ↓ REST API (build time)
     ↓ HTML → Markdown conversion
     ↓ Frontmatter mapping

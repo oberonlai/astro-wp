@@ -6,7 +6,7 @@
  */
 export default {
 	wordpress: {
-		url: "http://localhost:8888",
+		url: "http://127.0.0.1:8888",
 		auth: {
 			username: "admin",
 			password: "", // WordPress Application Password — auto-filled by wp:setup.
