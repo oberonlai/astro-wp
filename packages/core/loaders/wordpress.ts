@@ -104,7 +104,7 @@ function createTurndown(): TurndownService {
 		},
 	});
 
-	// YouTube/Vimeo iframes → plain URLs.
+	// YouTube/Vimeo iframes → embedded players (raw HTML preserved through Markdown).
 	turndown.addRule("iframe", {
 		filter: "iframe",
 		replacement: (_content, node) => {
@@ -114,11 +114,11 @@ function createTurndown(): TurndownService {
 				/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
 			);
 			if (youtubeMatch) {
-				return `\n\nhttps://www.youtube.com/watch?v=${youtubeMatch[1]}\n\n`;
+				return `\n\n<iframe width="560" height="315" src="https://www.youtube.com/embed/${youtubeMatch[1]}" frameborder="0" allowfullscreen></iframe>\n\n`;
 			}
 			const vimeoMatch = src.match(/player\.vimeo\.com\/video\/(\d+)/);
 			if (vimeoMatch) {
-				return `\n\nhttps://vimeo.com/${vimeoMatch[1]}\n\n`;
+				return `\n\n<iframe width="560" height="315" src="https://player.vimeo.com/video/${vimeoMatch[1]}" frameborder="0" allowfullscreen></iframe>\n\n`;
 			}
 			return "";
 		},
