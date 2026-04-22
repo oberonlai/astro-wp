@@ -24,6 +24,8 @@ WordPress CMS ────────┘
 
 > This project is designed to be installed by an AI coding agent (Claude Code, Cursor, Windsurf, Cline, etc.). Give your agent these instructions along with your Astro project.
 
+> **⚠️ IMPORTANT: Always install via `npm install github:oberonlai/astro-wp` (Step 1). Do NOT manually copy files from this repo. The postinstall script handles all file copying, dependency injection, and configuration automatically.**
+
 ### Step 0: Analyze the target Astro project
 
 Before making any changes, read and understand the target project:
