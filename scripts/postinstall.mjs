@@ -166,7 +166,6 @@ if (!existsSync(integrationDest)) {
 // --- 4. Ensure all required dependencies are present ---
 
 const pkgPath = resolve(projectRoot, "package.json");
-let needsReinstall = false;
 
 /**
  * Add a dependency to the target project's package.json if missing.
@@ -191,17 +190,16 @@ if (existsSync(pkgPath)) {
 	const pkgCheck = JSON.parse(readFileSync(pkgPath, "utf-8"));
 	let depsChanged = false;
 
-	// Runtime dependencies.
+	// Runtime dependencies (turndown and wrangler come from astro-wp-bridge's own deps,
+	// but add them to the target project too for when astro-wp-bridge is uninstalled).
 	depsChanged = ensureDep(pkgCheck, "turndown", "^7.2.4", false) || depsChanged;
 	depsChanged = ensureDep(pkgCheck, "turndown-plugin-gfm", "^1.0.2", false) || depsChanged;
 
 	// Dev dependencies.
 	depsChanged = ensureDep(pkgCheck, "@types/turndown", "^5.0.6", true) || depsChanged;
-	depsChanged = ensureDep(pkgCheck, "wrangler", "^4.0.0", true) || depsChanged;
 
 	if (depsChanged) {
 		writeFileSync(pkgPath, JSON.stringify(pkgCheck, null, 2) + "\n", "utf-8");
-		needsReinstall = true;
 	}
 }
 
@@ -285,16 +283,14 @@ if (existsSync(gitignorePath)) {
 console.log("");
 console.log("  ┌──────────────────────────────────────────────────────────┐");
 console.log("  │  astro-wp-bridge installed successfully!                 │");
+console.log("  │  (wrangler included — no extra install needed)           │");
 console.log("  │                                                          │");
 console.log("  │  Next steps:                                             │");
-if (needsReinstall) {
-console.log("  │  0. Run: npm install (to install wrangler)               │");
-}
 console.log("  │  1. Run: npm run wp:setup                                │");
 console.log("  │  2. Add wpPosts collection to content.config.ts          │");
 console.log("  │  3. Merge collections in your page files                 │");
 console.log("  │  4. Register wpDevReload() in astro.config.mjs           │");
-console.log("  │  5. Add poll script to <head> (see README Step 7)        │");
+console.log("  │  5. Add poll script to <head> (see README Step 6)        │");
 console.log("  │  6. Run: npx wrangler login (Cloudflare deploy auth)     │");
 console.log("  │  7. Run: npm run dev                                     │");
 console.log("  │                                                          │");

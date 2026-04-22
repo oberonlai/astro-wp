@@ -21,7 +21,8 @@
   ],
   "dependencies": {
     "turndown": "^7.2.4",
-    "turndown-plugin-gfm": "^1.0.2"
+    "turndown-plugin-gfm": "^1.0.2",
+    "wrangler": "^4.0.0"
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.mjs"

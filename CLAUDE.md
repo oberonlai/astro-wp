@@ -13,7 +13,7 @@ Follow `README.md` for the complete installation guide.
 - Adding `wp:setup`, `wp:start`, `wp:deploy` npm scripts
 - Updating `.gitignore` and `dev` script
 
-After `npm install github:oberonlai/astro-wp`, run `npm install` again to fetch newly added devDependencies (wrangler, etc.).
+All dependencies (turndown, wrangler, etc.) are included — no additional install step needed.
 
 ## Key Points for Claude Code
 

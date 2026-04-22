@@ -86,20 +86,16 @@ yarn add github:oberonlai/astro-wp
 ```
 
 This single command:
-- Installs `astro-wp-bridge` and its dependencies (`turndown`, `turndown-plugin-gfm`)
+- Installs `astro-wp-bridge` and all dependencies (`turndown`, `turndown-plugin-gfm`, `wrangler`)
 - Runs the postinstall script which automatically:
   - Copies all bridge files (loaders, integrations, WordPress plugin, config templates, setup/deploy scripts)
   - Fixes import paths (`../../../` → `../../`)
-  - Adds `wrangler` and `@types/turndown` to the project's devDependencies
+  - Adds `@types/turndown` to the project's devDependencies
   - Adds `wp:setup`, `wp:start`, `wp:deploy` scripts to package.json
   - Modifies `dev` script to start WordPress alongside Astro
   - Updates `.gitignore`
 
-After installation, run install again to fetch the newly added devDependencies:
-
-```bash
-npm install
-```
+No additional install step needed — all dependencies are included.
 
 ### Step 2: Adapt the loader to the project
 
