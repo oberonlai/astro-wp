@@ -75,16 +75,18 @@ Use the detected package manager from Step 0:
 ```bash
 # npm
 npm install turndown turndown-plugin-gfm
-npm install -D @types/turndown
+npm install -D @types/turndown wrangler
 
 # pnpm
 pnpm add turndown turndown-plugin-gfm
-pnpm add -D @types/turndown
+pnpm add -D @types/turndown wrangler
 
 # yarn
 yarn add turndown turndown-plugin-gfm
-yarn add -D @types/turndown
+yarn add -D @types/turndown wrangler
 ```
+
+> `wrangler` is required for deploying to Cloudflare Workers. Users must run `npx wrangler login` once after installation to authorize their Cloudflare account.
 
 ### Step 2: Copy files to the target project
 
@@ -100,6 +102,7 @@ Copy from this repo to the target Astro project:
 | `templates/wp-bridge.config.ts` | `wp-bridge.config.ts` (project root) |
 | `templates/blueprint.json` | `blueprint.json` (project root) |
 | `templates/scripts/wp-setup.mjs` | `scripts/wp-setup.mjs` |
+| `templates/scripts/wp-deploy.mjs` | `scripts/wp-deploy.mjs` |
 
 ### Step 3: Adapt the loader to the project
 
@@ -254,7 +257,8 @@ Add these scripts (preserve existing scripts):
 ```json
 {
   "wp:setup": "node scripts/wp-setup.mjs",
-  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 2>&1 | grep -v 'Cannot unzip'"
+  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 2>&1 | grep -v 'Cannot unzip'",
+  "wp:deploy": "node scripts/wp-deploy.mjs"
 }
 ```
 
@@ -277,7 +281,15 @@ Modify the `dev` script to start WordPress alongside Astro. **Choose based on OS
 }
 ```
 
-### Step 10: First-time setup
+### Step 10: Cloudflare deploy auth
+
+```bash
+npx wrangler login
+```
+
+This opens a browser for Cloudflare OAuth. Only needs to be done once per machine. Required for `npm run wp:deploy` to work.
+
+### Step 11: First-time setup
 
 ```bash
 npm run wp:setup
@@ -289,7 +301,7 @@ This automatically:
 3. Creates an Application Password
 4. Writes the password to `wp-bridge.config.ts`
 
-### Step 11: Verify
+### Step 12: Verify
 
 ```bash
 npm run dev
@@ -336,6 +348,30 @@ A lightweight (~400 lines) WordPress plugin that provides:
 - **Health endpoint**: `GET /wp-json/astro-cms-connect/v1/health`
 - **Settings page**: Settings > Astro CMS Connect — enable/disable, Astro URL, Webhook URL, auto-generated secret
 
+### Deploy Flow (Save → Build → Deploy)
+
+When WordPress is local, the Cloudflare build server cannot reach `localhost`. Instead, the build runs locally and uploads to Cloudflare:
+
+```
+WP saves post → webhook POST to localhost:4000
+→ local astro build (fetches from localhost WP ✅)
+→ npx wrangler deploy (uploads to Cloudflare Workers ✅)
+```
+
+Run alongside `npm run dev`:
+
+```bash
+npm run wp:deploy
+```
+
+The deploy server:
+- Listens on `http://localhost:4000/webhook`
+- Verifies HMAC signature from WordPress plugin
+- Debounces rapid saves (5 second window)
+- Queues deploys when a build is already running
+
+The WordPress plugin (`astro-cms-connect`) is pre-configured to POST to `http://localhost:4000/webhook` on activation. Verify in WP admin: **Settings > Astro CMS Connect**.
+
 ### WordPress Playground
 
 WordPress runs locally via `@wp-playground/cli` — a WebAssembly-based WordPress that uses SQLite instead of MySQL. No Docker, no PHP, no MySQL installation required. Just Node.js.
@@ -346,7 +382,7 @@ Data persists in `wordpress/site/` within the project directory. This directory 
 
 - WordPress Playground uses SQLite — some MySQL-specific plugins may not work (core WordPress and common plugins like Yoast/ACF are fine)
 - Content is fetched at build time, not in real-time. Restart `npm run dev` or rebuild to see new WordPress posts
-- For production deployment, you need WordPress accessible from the CI/CD environment (not just localhost)
+- Production deploy requires `npm run wp:deploy` running locally (builds locally, uploads to Cloudflare)
 
 ## License
 

@@ -11,9 +11,11 @@
  * - blueprint.json (Playground init config)
  * - wp-bridge.config.ts (REST API credentials)
  * - scripts/wp-setup.mjs (first-time setup)
+ * - scripts/wp-deploy.mjs (local deploy server)
  * - wordpress/plugins/astro-cms-connect/ (WordPress plugin)
  * - src/loaders/wordpress.ts + type declarations
- * - package.json scripts (wp:setup, wp:start, dev)
+ * - wrangler devDependency (for Cloudflare deploy)
+ * - package.json scripts (wp:setup, wp:start, wp:deploy, dev)
  * - .gitignore entries
  *
  * What still requires manual (or AI agent) work:
@@ -161,9 +163,29 @@ if (!existsSync(integrationDest)) {
 	console.log("  ✓ src/integrations/wp-dev-reload.ts (already exists)");
 }
 
-// --- 4. Update package.json scripts ---
+// --- 4. Ensure wrangler is in devDependencies ---
 
 const pkgPath = resolve(projectRoot, "package.json");
+let needsReinstall = false;
+
+if (existsSync(pkgPath)) {
+	const pkgCheck = JSON.parse(readFileSync(pkgPath, "utf-8"));
+	const hasDep = pkgCheck.dependencies && pkgCheck.dependencies.wrangler;
+	const hasDevDep = pkgCheck.devDependencies && pkgCheck.devDependencies.wrangler;
+
+	if (!hasDep && !hasDevDep) {
+		if (!pkgCheck.devDependencies) pkgCheck.devDependencies = {};
+		pkgCheck.devDependencies.wrangler = "^4.0.0";
+		writeFileSync(pkgPath, JSON.stringify(pkgCheck, null, 2) + "\n", "utf-8");
+		console.log("  + wrangler added to devDependencies");
+		needsReinstall = true;
+	} else {
+		console.log("  ✓ wrangler (already in dependencies)");
+	}
+}
+
+// --- 5. Update package.json scripts ---
+
 if (existsSync(pkgPath)) {
 	const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 	let changed = false;
@@ -210,7 +232,7 @@ if (existsSync(pkgPath)) {
 	}
 }
 
-// --- 5. Update .gitignore ---
+// --- 6. Update .gitignore ---
 
 const gitignorePath = resolve(projectRoot, ".gitignore");
 const ignoreEntries = ["wordpress/site/", "src/config/wp-categories.json"];
@@ -240,16 +262,22 @@ if (existsSync(gitignorePath)) {
 // --- Done ---
 
 console.log("");
-console.log("  ┌──────────────────────────────────────────────────────┐");
-console.log("  │  astro-wp-bridge installed successfully!             │");
-console.log("  │                                                      │");
-console.log("  │  Next steps:                                         │");
-console.log("  │  1. Run: npm run wp:setup                            │");
-console.log("  │  2. Add wpPosts collection to content.config.ts      │");
-console.log("  │  3. Merge collections in your page files             │");
-console.log("  │  4. Register wpDevReload() in astro.config.mjs       │");
-console.log("  │  5. Add poll script to <head> (see README Step 7)    │");
-console.log("  │  6. Run: npx wrangler login (Cloudflare deploy auth) │");
-console.log("  │  7. Run: npm run dev                                 │");
-console.log("  └──────────────────────────────────────────────────────┘");
+console.log("  ┌──────────────────────────────────────────────────────────┐");
+console.log("  │  astro-wp-bridge installed successfully!                 │");
+console.log("  │                                                          │");
+console.log("  │  Next steps:                                             │");
+if (needsReinstall) {
+console.log("  │  0. Run: npm install (to install wrangler)               │");
+}
+console.log("  │  1. Run: npm run wp:setup                                │");
+console.log("  │  2. Add wpPosts collection to content.config.ts          │");
+console.log("  │  3. Merge collections in your page files                 │");
+console.log("  │  4. Register wpDevReload() in astro.config.mjs           │");
+console.log("  │  5. Add poll script to <head> (see README Step 7)        │");
+console.log("  │  6. Run: npx wrangler login (Cloudflare deploy auth)     │");
+console.log("  │  7. Run: npm run dev                                     │");
+console.log("  │                                                          │");
+console.log("  │  Deploy (WP save → auto build + deploy to Cloudflare):   │");
+console.log("  │  Run: npm run wp:deploy (start local deploy server)      │");
+console.log("  └──────────────────────────────────────────────────────────┘");
 console.log("");
