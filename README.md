@@ -88,32 +88,34 @@ yarn add -D @types/turndown wrangler
 
 > `wrangler` is required for deploying to Cloudflare Workers. Users must run `npx wrangler login` once after installation to authorize their Cloudflare account.
 
-### Step 2: Copy files to the target project
+### Step 2: Run the setup script
 
-Copy from this repo to the target Astro project:
+Instead of manually copying files, run the postinstall script with `INIT_CWD` pointing to the target Astro project:
 
-| Source (this repo) | Destination (target project) |
-|--------|-------------|
-| `packages/core/loaders/wordpress.ts` | `src/loaders/wordpress.ts` |
-| `packages/core/loaders/turndown-plugin-gfm.d.ts` | `src/loaders/turndown-plugin-gfm.d.ts` |
-| `packages/core/merged-categories.ts` | `src/utils/merged-categories.ts` |
-| `packages/core/integrations/wp-dev-reload.ts` | `src/integrations/wp-dev-reload.ts` |
-| `packages/wordpress-plugin/` (entire directory) | `wordpress/plugins/astro-cms-connect/` |
-| `templates/wp-bridge.config.ts` | `wp-bridge.config.ts` (project root) |
-| `templates/blueprint.json` | `blueprint.json` (project root) |
-| `templates/scripts/wp-setup.mjs` | `scripts/wp-setup.mjs` |
-| `templates/scripts/wp-deploy.mjs` | `scripts/wp-deploy.mjs` |
+```bash
+INIT_CWD=/path/to/target-project node /path/to/astro-wp/scripts/postinstall.mjs
+```
+
+This automatically:
+- Copies all bridge files (loaders, integrations, WordPress plugin, config templates, setup/deploy scripts)
+- Fixes import paths (`../../../` → `../../`)
+- Adds `wrangler` to devDependencies (if missing)
+- Adds `wp:setup`, `wp:start`, `wp:deploy` scripts to package.json
+- Modifies `dev` script to start WordPress alongside Astro
+- Updates `.gitignore`
+
+After running, install the newly added dependencies:
+
+```bash
+npm install
+# or: pnpm install / yarn install
+```
 
 ### Step 3: Adapt the loader to the project
 
-In `src/loaders/wordpress.ts`, fix the import path to resolve `wp-bridge.config.ts` at the project root:
+Verify that the import path in `src/loaders/wordpress.ts` correctly resolves `wp-bridge.config.ts` at the project root. The setup script sets it to `../../wp-bridge.config` (2 levels deep from `src/loaders/`).
 
-```ts
-// If loader is at src/loaders/wordpress.ts (2 levels deep):
-import wpBridgeConfig from "../../wp-bridge.config";
-```
-
-Adjust the relative path depth if the loader is placed elsewhere.
+If the loader is placed elsewhere, adjust the relative path accordingly.
 
 ### Step 4: Adapt `merged-categories.ts` to the project
 
@@ -241,47 +243,21 @@ Add the following inside the `<head>` tag of the project's base layout or head c
 
 This polls the dev server every 3 seconds. When a WordPress post is saved, the page auto-reloads with the updated content.
 
-### Step 8: Update .gitignore
+### Step 8: Verify auto-configured files
 
-Add these lines:
+Step 2's setup script already handled `.gitignore`, `package.json` scripts (`wp:setup`, `wp:start`, `wp:deploy`, `dev`), and `wrangler` devDependency. Verify they are present:
 
-```
-wordpress/site/
-src/config/wp-categories.json
-```
+```bash
+# Should show wp:setup, wp:start, wp:deploy, dev
+grep -E "wp:(setup|start|deploy)|\"dev\"" package.json
 
-### Step 9: Update package.json scripts
-
-Add these scripts (preserve existing scripts):
-
-```json
-{
-  "wp:setup": "node scripts/wp-setup.mjs",
-  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 2>&1 | grep -v 'Cannot unzip'",
-  "wp:deploy": "node scripts/wp-deploy.mjs"
-}
+# Should include wordpress/site/ and wp-categories.json
+cat .gitignore | grep -E "wordpress|wp-categories"
 ```
 
-Modify the `dev` script to start WordPress alongside Astro. **Choose based on OS detected in Step 0:**
+If any are missing, re-run the setup script from Step 2.
 
-**macOS / Linux:**
-
-```json
-{
-  "dev": "npx @wp-playground/cli@latest server --mount-before-install=./wordpress/site:/wordpress --mount=./wordpress/plugins/astro-cms-connect:/wordpress/wp-content/plugins/astro-cms-connect --blueprint=blueprint.json --port=8888 2>&1 | grep -v 'Cannot unzip' & sleep 10 && astro dev"
-}
-```
-
-**Windows** (install `concurrently` first: `npm install -D concurrently`):
-
-```json
-{
-  "wp:start": "npx @wp-playground/cli@latest server --mount-before-install-dir \"./wordpress/site\" \"/wordpress\" --mount-dir \"./wordpress/plugins/astro-cms-connect\" \"/wordpress/wp-content/plugins/astro-cms-connect\" --blueprint=blueprint.json --port=8888 2>&1 | findstr /V \"Cannot unzip\"",
-  "dev": "concurrently \"npm run wp:start\" \"node -e \\\"setTimeout(()=>{},10000)\\\" && astro dev\""
-}
-```
-
-### Step 10: Cloudflare deploy auth
+### Step 9: Cloudflare deploy auth
 
 ```bash
 npx wrangler login
@@ -289,7 +265,7 @@ npx wrangler login
 
 This opens a browser for Cloudflare OAuth. Only needs to be done once per machine. Required for `npm run wp:deploy` to work.
 
-### Step 11: First-time setup
+### Step 10: First-time setup
 
 ```bash
 npm run wp:setup
@@ -301,7 +277,7 @@ This automatically:
 3. Creates an Application Password
 4. Writes the password to `wp-bridge.config.ts`
 
-### Step 12: Verify
+### Step 11: Verify
 
 ```bash
 npm run dev
