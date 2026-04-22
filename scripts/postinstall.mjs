@@ -111,6 +111,22 @@ copyIfMissing(
 	"scripts/wp-deploy.mjs",
 );
 
+// --- 1b. Pre-create required directories ---
+
+const wpSiteDir = resolve(projectRoot, "wordpress/site");
+if (!existsSync(wpSiteDir)) {
+	mkdirSync(wpSiteDir, { recursive: true });
+	console.log("  + wordpress/site/ (required by Playground CLI)");
+} else {
+	console.log("  ✓ wordpress/site/ (already exists)");
+}
+
+const wpCategoriesDir = resolve(projectRoot, "src/config");
+if (!existsSync(wpCategoriesDir)) {
+	mkdirSync(wpCategoriesDir, { recursive: true });
+	console.log("  + src/config/ (for wp-categories.json)");
+}
+
 // --- 2. WordPress plugin ---
 
 copyDirIfMissing(
