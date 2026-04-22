@@ -243,15 +243,7 @@ cat .gitignore | grep -E "wordpress|wp-categories"
 
 If any are missing, re-run: `npm install github:oberonlai/astro-wp`
 
-### Step 8: Cloudflare deploy auth
-
-```bash
-npx wrangler login
-```
-
-This opens a browser for Cloudflare OAuth. Only needs to be done once per machine. Required for `npm run wp:deploy` to work.
-
-### Step 9: First-time setup
+### Step 8: First-time setup
 
 ```bash
 npm run wp:setup
@@ -263,7 +255,7 @@ This automatically:
 3. Creates an Application Password
 4. Writes the password to `wp-bridge.config.ts`
 
-### Step 10: Verify
+### Step 9: Verify
 
 ```bash
 npm run dev
@@ -272,6 +264,14 @@ npm run dev
 1. Open `http://127.0.0.1:8888/wp-admin` — WordPress admin (auto-login)
 2. Create a post in WordPress
 3. The post should appear on the frontend within a few seconds (auto-reload)
+
+### Step 10: Cloudflare deploy auth (optional, do last)
+
+```bash
+npx wrangler login
+```
+
+This opens a browser for Cloudflare OAuth. Only needs to be done once per machine. Required for `npm run wp:deploy` to work. **This step is interactive and requires the user to complete manually — do not block the rest of the installation on this step.**
 
 ## How It Works
 
