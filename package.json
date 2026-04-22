@@ -1,6 +1,6 @@
 {
   "name": "astro-wp-bridge",
-  "version": "0.1.0",
+  "version": "1.0.7",
   "description": "Add WordPress as a headless CMS to any Astro site. Zero database — WordPress Playground + REST API.",
   "author": "Codotx",
   "license": "MIT",
@@ -11,6 +11,13 @@
     "headless-cms",
     "content-loader",
     "playground"
+  ],
+  "files": [
+    "scripts/",
+    "templates/",
+    "packages/core/",
+    "packages/wordpress-plugin/",
+    "README.md"
   ],
   "dependencies": {
     "turndown": "^7.2.4",

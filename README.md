@@ -68,62 +68,50 @@ Before making any changes, read and understand the target project:
 
 This analysis determines how to adapt the installation to this specific project.
 
-### Step 1: Install dependencies
+### Step 1: Install astro-wp-bridge
 
-Use the detected package manager from Step 0:
+Use the detected package manager from Step 0. Install from the GitHub repo:
 
 ```bash
 # npm
-npm install turndown turndown-plugin-gfm
-npm install -D @types/turndown wrangler
+npm install github:oberonlai/astro-wp
 
 # pnpm
-pnpm add turndown turndown-plugin-gfm
-pnpm add -D @types/turndown wrangler
+pnpm add github:oberonlai/astro-wp
 
 # yarn
-yarn add turndown turndown-plugin-gfm
-yarn add -D @types/turndown wrangler
+yarn add github:oberonlai/astro-wp
 ```
 
-> `wrangler` is required for deploying to Cloudflare Workers. Users must run `npx wrangler login` once after installation to authorize their Cloudflare account.
+This single command:
+- Installs `astro-wp-bridge` and its dependencies (`turndown`, `turndown-plugin-gfm`)
+- Runs the postinstall script which automatically:
+  - Copies all bridge files (loaders, integrations, WordPress plugin, config templates, setup/deploy scripts)
+  - Fixes import paths (`../../../` → `../../`)
+  - Adds `wrangler` and `@types/turndown` to the project's devDependencies
+  - Adds `wp:setup`, `wp:start`, `wp:deploy` scripts to package.json
+  - Modifies `dev` script to start WordPress alongside Astro
+  - Updates `.gitignore`
 
-### Step 2: Run the setup script
-
-Instead of manually copying files, run the postinstall script with `INIT_CWD` pointing to the target Astro project:
-
-```bash
-INIT_CWD=/path/to/target-project node /path/to/astro-wp/scripts/postinstall.mjs
-```
-
-This automatically:
-- Copies all bridge files (loaders, integrations, WordPress plugin, config templates, setup/deploy scripts)
-- Fixes import paths (`../../../` → `../../`)
-- Adds `wrangler` to devDependencies (if missing)
-- Adds `wp:setup`, `wp:start`, `wp:deploy` scripts to package.json
-- Modifies `dev` script to start WordPress alongside Astro
-- Updates `.gitignore`
-
-After running, install the newly added dependencies:
+After installation, run install again to fetch the newly added devDependencies:
 
 ```bash
 npm install
-# or: pnpm install / yarn install
 ```
 
-### Step 3: Adapt the loader to the project
+### Step 2: Adapt the loader to the project
 
-Verify that the import path in `src/loaders/wordpress.ts` correctly resolves `wp-bridge.config.ts` at the project root. The setup script sets it to `../../wp-bridge.config` (2 levels deep from `src/loaders/`).
+Verify that the import path in `src/loaders/wordpress.ts` correctly resolves `wp-bridge.config.ts` at the project root. The postinstall sets it to `../../wp-bridge.config` (2 levels deep from `src/loaders/`).
 
 If the loader is placed elsewhere, adjust the relative path accordingly.
 
-### Step 4: Adapt `merged-categories.ts` to the project
+### Step 3: Adapt `merged-categories.ts` to the project
 
 In `src/utils/merged-categories.ts`, update the import to match the project's category config file path and structure. The default assumes `@/config/category.json` with a `news` key.
 
 If the project uses a different path or structure, adapt accordingly.
 
-### Step 5: Add WordPress collection to content config
+### Step 4: Add WordPress collection to content config
 
 In the project's content config file, add:
 
@@ -148,7 +136,7 @@ const wpPosts = defineCollection({
 
 Add `wpPosts` to the collection exports.
 
-### Step 6: Merge WordPress content into existing pages
+### Step 5: Merge WordPress content into existing pages
 
 This step requires adapting to the specific project's page structure.
 
@@ -204,7 +192,7 @@ Handle optional fields that may only exist in one collection:
 const sessionSlug = "sessionSlug" in post.data ? post.data.sessionSlug : undefined;
 ```
 
-### Step 7: Enable dev auto-reload
+### Step 6: Enable dev auto-reload
 
 Register the `wpDevReload` integration in `astro.config.mjs` and inject a poll script into the page head.
 
@@ -243,9 +231,9 @@ Add the following inside the `<head>` tag of the project's base layout or head c
 
 This polls the dev server every 3 seconds. When a WordPress post is saved, the page auto-reloads with the updated content.
 
-### Step 8: Verify auto-configured files
+### Step 7: Verify auto-configured files
 
-Step 2's setup script already handled `.gitignore`, `package.json` scripts (`wp:setup`, `wp:start`, `wp:deploy`, `dev`), and `wrangler` devDependency. Verify they are present:
+Step 1's postinstall already handled `.gitignore`, `package.json` scripts (`wp:setup`, `wp:start`, `wp:deploy`, `dev`), and `wrangler` devDependency. Verify they are present:
 
 ```bash
 # Should show wp:setup, wp:start, wp:deploy, dev
@@ -255,9 +243,9 @@ grep -E "wp:(setup|start|deploy)|\"dev\"" package.json
 cat .gitignore | grep -E "wordpress|wp-categories"
 ```
 
-If any are missing, re-run the setup script from Step 2.
+If any are missing, re-run: `npm install github:oberonlai/astro-wp`
 
-### Step 9: Cloudflare deploy auth
+### Step 8: Cloudflare deploy auth
 
 ```bash
 npx wrangler login
@@ -265,7 +253,7 @@ npx wrangler login
 
 This opens a browser for Cloudflare OAuth. Only needs to be done once per machine. Required for `npm run wp:deploy` to work.
 
-### Step 10: First-time setup
+### Step 9: First-time setup
 
 ```bash
 npm run wp:setup
@@ -277,7 +265,7 @@ This automatically:
 3. Creates an Application Password
 4. Writes the password to `wp-bridge.config.ts`
 
-### Step 11: Verify
+### Step 10: Verify
 
 ```bash
 npm run dev

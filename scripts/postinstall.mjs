@@ -163,24 +163,45 @@ if (!existsSync(integrationDest)) {
 	console.log("  ✓ src/integrations/wp-dev-reload.ts (already exists)");
 }
 
-// --- 4. Ensure wrangler is in devDependencies ---
+// --- 4. Ensure all required dependencies are present ---
 
 const pkgPath = resolve(projectRoot, "package.json");
 let needsReinstall = false;
 
+/**
+ * Add a dependency to the target project's package.json if missing.
+ */
+function ensureDep(pkgObj, name, version, dev) {
+	const inDeps = pkgObj.dependencies && pkgObj.dependencies[name];
+	const inDevDeps = pkgObj.devDependencies && pkgObj.devDependencies[name];
+
+	if (inDeps || inDevDeps) {
+		console.log(`  ✓ ${name} (already in dependencies)`);
+		return false;
+	}
+
+	const target = dev ? "devDependencies" : "dependencies";
+	if (!pkgObj[target]) pkgObj[target] = {};
+	pkgObj[target][name] = version;
+	console.log(`  + ${name} added to ${target}`);
+	return true;
+}
+
 if (existsSync(pkgPath)) {
 	const pkgCheck = JSON.parse(readFileSync(pkgPath, "utf-8"));
-	const hasDep = pkgCheck.dependencies && pkgCheck.dependencies.wrangler;
-	const hasDevDep = pkgCheck.devDependencies && pkgCheck.devDependencies.wrangler;
+	let depsChanged = false;
 
-	if (!hasDep && !hasDevDep) {
-		if (!pkgCheck.devDependencies) pkgCheck.devDependencies = {};
-		pkgCheck.devDependencies.wrangler = "^4.0.0";
+	// Runtime dependencies.
+	depsChanged = ensureDep(pkgCheck, "turndown", "^7.2.4", false) || depsChanged;
+	depsChanged = ensureDep(pkgCheck, "turndown-plugin-gfm", "^1.0.2", false) || depsChanged;
+
+	// Dev dependencies.
+	depsChanged = ensureDep(pkgCheck, "@types/turndown", "^5.0.6", true) || depsChanged;
+	depsChanged = ensureDep(pkgCheck, "wrangler", "^4.0.0", true) || depsChanged;
+
+	if (depsChanged) {
 		writeFileSync(pkgPath, JSON.stringify(pkgCheck, null, 2) + "\n", "utf-8");
-		console.log("  + wrangler added to devDependencies");
 		needsReinstall = true;
-	} else {
-		console.log("  ✓ wrangler (already in dependencies)");
 	}
 }
 
