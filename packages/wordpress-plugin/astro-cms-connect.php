@@ -54,7 +54,13 @@ function cdx_activate() {
 	$options = get_option( 'cdx_settings', array() );
 	if ( empty( $options['webhook_secret'] ) ) {
 		$options['webhook_secret'] = wp_generate_password( 32, false );
-		update_option( 'cdx_settings', $options );
 	}
+	if ( empty( $options['webhook_url'] ) ) {
+		$options['webhook_url'] = 'http://localhost:4000/webhook';
+	}
+	if ( ! isset( $options['enabled'] ) ) {
+		$options['enabled'] = true;
+	}
+	update_option( 'cdx_settings', $options );
 }
 register_activation_hook( __FILE__, 'cdx_activate' );

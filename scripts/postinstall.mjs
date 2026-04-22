@@ -103,6 +103,12 @@ copyIfMissing(
 	"scripts/wp-setup.mjs",
 );
 
+copyIfMissing(
+	resolve(PKG_ROOT, "templates/scripts/wp-deploy.mjs"),
+	resolve(projectRoot, "scripts/wp-deploy.mjs"),
+	"scripts/wp-deploy.mjs",
+);
+
 // --- 2. WordPress plugin ---
 
 copyDirIfMissing(
@@ -169,6 +175,11 @@ if (existsSync(pkgPath)) {
 		changed = true;
 	}
 
+	if (!pkg.scripts["wp:deploy"]) {
+		pkg.scripts["wp:deploy"] = "node scripts/wp-deploy.mjs";
+		changed = true;
+	}
+
 	const isWindows = process.platform === "win32";
 
 	const wpStartCmd = isWindows
@@ -193,7 +204,7 @@ if (existsSync(pkgPath)) {
 
 	if (changed) {
 		writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
-		console.log("  + package.json scripts (wp:setup, wp:start, dev)");
+		console.log("  + package.json scripts (wp:setup, wp:start, wp:deploy, dev)");
 	} else {
 		console.log("  ✓ package.json scripts (already configured)");
 	}
@@ -238,6 +249,7 @@ console.log("  │  2. Add wpPosts collection to content.config.ts      │");
 console.log("  │  3. Merge collections in your page files             │");
 console.log("  │  4. Register wpDevReload() in astro.config.mjs       │");
 console.log("  │  5. Add poll script to <head> (see README Step 7)    │");
-console.log("  │  6. Run: npm run dev                                 │");
+console.log("  │  6. Run: npx wrangler login (Cloudflare deploy auth) │");
+console.log("  │  7. Run: npm run dev                                 │");
 console.log("  └──────────────────────────────────────────────────────┘");
 console.log("");

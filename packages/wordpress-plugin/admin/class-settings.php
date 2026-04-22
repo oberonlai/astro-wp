@@ -142,11 +142,11 @@ class Cdx_Settings {
 		$options     = get_option( $this->option_name, array() );
 		$webhook_url = isset( $options['webhook_url'] ) ? $options['webhook_url'] : '';
 		printf(
-			'<input type="url" name="%s[webhook_url]" value="%s" class="regular-text" placeholder="https://api.cloudflare.com/..." />',
+			'<input type="url" name="%s[webhook_url]" value="%s" class="regular-text" placeholder="http://localhost:4000/webhook" />',
 			esc_attr( $this->option_name ),
 			esc_attr( $webhook_url )
 		);
-		echo '<p class="description">' . esc_html__( 'Deploy hook URL (e.g., Cloudflare Pages, Vercel, Netlify).', 'cdx-cms' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Local deploy server (default: http://localhost:4000/webhook) or external deploy hook URL.', 'cdx-cms' ) . '</p>';
 	}
 
 	/**
