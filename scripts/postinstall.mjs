@@ -236,9 +236,9 @@ if (existsSync(pkgPath)) {
 	if (pkg.scripts.dev && !pkg.scripts.dev.includes("wp-playground")) {
 		const originalDev = pkg.scripts.dev;
 		if (isWindows) {
-			pkg.scripts.dev = `concurrently "npm run wp:start" "node -e \\"setTimeout(()=>{},10000)\\" && ${originalDev}"`;
+			pkg.scripts.dev = `concurrently "npm run wp:start" "npm run wp:deploy" "node -e \\"setTimeout(()=>{},10000)\\" && ${originalDev}"`;
 		} else {
-			pkg.scripts.dev = `${wpStartCmd} & sleep 10 && ${originalDev}`;
+			pkg.scripts.dev = `${wpStartCmd} & node scripts/wp-deploy.mjs & sleep 10 && ${originalDev}`;
 		}
 		changed = true;
 	}
