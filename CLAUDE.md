@@ -1,4 +1,4 @@
-# Astro WP Bridge — Claude Code Instructions
+# Astro WP — Claude Code Instructions
 
 Follow `README.md` for the complete installation guide.
 

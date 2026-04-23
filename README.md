@@ -1,4 +1,4 @@
-# Astro WP Bridge
+# Astro WP
 
 Add WordPress as a headless CMS to any Astro site. WordPress Playground runs locally — no Docker, no MySQL, no PHP install needed. Content is fetched via REST API at build time.
 
@@ -70,7 +70,7 @@ Before making any changes, read and understand the target project:
 
 This analysis determines how to adapt the installation to this specific project.
 
-### Step 1: Install astro-wp-bridge
+### Step 1: Install astro-wp
 
 Use the detected package manager from Step 0. Install from the GitHub repo:
 
@@ -86,7 +86,7 @@ yarn add github:oberonlai/astro-wp
 ```
 
 This single command:
-- Installs `astro-wp-bridge` and all dependencies (`turndown`, `turndown-plugin-gfm`, `wrangler`)
+- Installs `astro-wp` and all dependencies (`turndown`, `turndown-plugin-gfm`, `wrangler`)
 - Runs the postinstall script which automatically:
   - Copies all bridge files (loaders, integrations, WordPress plugin, config templates, setup/deploy scripts)
   - Fixes import paths (`../../../` → `../../`)

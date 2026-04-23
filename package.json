@@ -1,5 +1,5 @@
 {
-  "name": "astro-wp-bridge",
+  "name": "astro-wp",
   "version": "1.0.7",
   "description": "Add WordPress as a headless CMS to any Astro site. Zero database — WordPress Playground + REST API.",
   "author": "Codotx",

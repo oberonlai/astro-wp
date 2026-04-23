@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Postinstall script for astro-wp-bridge.
+ * Postinstall script for astro-wp.
  *
  * Copies WordPress Playground infrastructure files to the consuming
  * project after npm/pnpm/yarn install. Skips files that already exist
@@ -34,16 +34,16 @@ const PKG_ROOT = resolve(__dirname, "..");
 // Find the consuming project root via INIT_CWD (set by npm/pnpm/yarn during install).
 const projectRoot = process.env.INIT_CWD || resolve(PKG_ROOT, "..", "..");
 
-// Guard: do not run when installing astro-wp-bridge itself (development).
+// Guard: do not run when installing astro-wp itself (development).
 const projectPkg = resolve(projectRoot, "package.json");
 if (existsSync(projectPkg)) {
 	const pkg = JSON.parse(readFileSync(projectPkg, "utf-8"));
-	if (pkg.name === "astro-wp-bridge") {
+	if (pkg.name === "astro-wp") {
 		process.exit(0);
 	}
 }
 
-console.log("\n  [astro-wp-bridge] Setting up WordPress Playground...\n");
+console.log("\n  [astro-wp] Setting up WordPress Playground...\n");
 
 /**
  * Copy a single file if the destination does not exist.
@@ -206,8 +206,8 @@ if (existsSync(pkgPath)) {
 	const pkgCheck = JSON.parse(readFileSync(pkgPath, "utf-8"));
 	let depsChanged = false;
 
-	// Runtime dependencies (turndown and wrangler come from astro-wp-bridge's own deps,
-	// but add them to the target project too for when astro-wp-bridge is uninstalled).
+	// Runtime dependencies (turndown and wrangler come from astro-wp's own deps,
+	// but add them to the target project too for when astro-wp is uninstalled).
 	depsChanged = ensureDep(pkgCheck, "turndown", "^7.2.4", false) || depsChanged;
 	depsChanged = ensureDep(pkgCheck, "turndown-plugin-gfm", "^1.0.2", false) || depsChanged;
 
@@ -298,7 +298,7 @@ if (existsSync(gitignorePath)) {
 
 console.log("");
 console.log("  ┌──────────────────────────────────────────────────────────┐");
-console.log("  │  astro-wp-bridge installed successfully!                 │");
+console.log("  │  astro-wp installed successfully!                        │");
 console.log("  │  (wrangler included — no extra install needed)           │");
 console.log("  │                                                          │");
 console.log("  │  Next steps:                                             │");
