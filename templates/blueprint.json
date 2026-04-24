@@ -1,6 +1,6 @@
 {
   "landingPage": "/wp-admin/",
-  "login": true,
+  "login": false,
   "steps": [
     {
       "step": "activatePlugin",
@@ -8,7 +8,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php require '/wordpress/wp-load.php'; if (file_exists('/wordpress/wp-content/astro-cms-connect-app-password.txt')) { echo 'Application Password already exists, skipping.'; exit(0); } $user = get_user_by('login', 'admin'); if (!$user) { echo 'User not found'; exit(1); } $result = WP_Application_Passwords::create_new_application_password($user->ID, array('name' => 'Astro CMS Connect', 'app_id' => '')); if (is_wp_error($result)) { echo 'Error: ' . $result->get_error_message(); exit(1); } $password = $result[0]; file_put_contents('/wordpress/wp-content/astro-cms-connect-app-password.txt', $password); echo 'Application Password created successfully.'; ?>"
+      "code": "<?php require '/wordpress/wp-load.php'; if (file_exists('/wordpress/wp-content/astro-cms-connect-app-password.txt')) { echo 'Already set up, skipping.'; exit(0); } $user = get_user_by('login', 'admin'); if (!$user) { echo 'User not found'; exit(1); } $loginPwd = wp_generate_password(20, true, true); wp_set_password($loginPwd, $user->ID); file_put_contents('/wordpress/wp-content/astro-cms-connect-login-password.txt', $loginPwd); $result = WP_Application_Passwords::create_new_application_password($user->ID, array('name' => 'Astro CMS Connect', 'app_id' => '')); if (is_wp_error($result)) { echo 'Error: ' . $result->get_error_message(); exit(1); } $password = $result[0]; file_put_contents('/wordpress/wp-content/astro-cms-connect-app-password.txt', $password); echo 'Setup complete.'; ?>"
     }
   ]
 }

@@ -530,11 +530,13 @@ export function wpLoader(): Loader {
 					);
 				}
 
+				const displayPassword =
+					(auth as { loginPassword?: string }).loginPassword || "password";
 				console.log("");
 				console.log("  ┌─────────────────────────────────────────────────┐");
 				console.log(`  │  WP Admin   ${url}/wp-admin`.padEnd(51) + "│");
 				console.log(`  │  Username   admin`.padEnd(51) + "│");
-				console.log(`  │  Password   password`.padEnd(51) + "│");
+				console.log(`  │  Password   ${displayPassword}`.padEnd(51) + "│");
 				console.log("  └─────────────────────────────────────────────────┘");
 				console.log("");
 			} catch (error) {

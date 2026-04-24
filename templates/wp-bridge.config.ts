@@ -9,7 +9,8 @@ export default {
 		url: "http://127.0.0.1:8888",
 		auth: {
 			username: "admin",
-			password: "", // WordPress Application Password — auto-filled by wp:setup.
+			password: "", // WordPress Application Password (REST API) — auto-filled by wp:setup.
+			loginPassword: "", // Admin login password (browser) — auto-filled by wp:setup, randomised.
 		},
 	},
 	collections: {
