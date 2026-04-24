@@ -109,7 +109,14 @@ class Cdx_Permalink {
 	 * @return string Rewritten permalink or original if unavailable.
 	 */
 	public function rewrite_post_link( $permalink, $post ) {
-		// Only rewrite for public post types.
+		// page_link passes an int post ID while post_link / post_type_link pass WP_Post.
+		// Normalise to a WP_Post so downstream reads are consistent.
+		if ( is_numeric( $post ) ) {
+			$post = get_post( $post );
+		}
+		if ( ! $post instanceof WP_Post ) {
+			return $permalink;
+		}
 		$post_type_obj = get_post_type_object( $post->post_type );
 		if ( ! $post_type_obj || ! $post_type_obj->public ) {
 			return $permalink;
