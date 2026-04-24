@@ -7,6 +7,13 @@ import { gfm } from "turndown-plugin-gfm";
 // This import path will be resolved relative to the user's project root.
 // When installed, wp-bridge.config.ts lives at the project root.
 import wpBridgeConfig from "../../../wp-bridge.config";
+import {
+	createImageDownloader,
+	type ImageConfig,
+	type ImageDownloader,
+	resolveImageConfig,
+	rewriteImageUrls,
+} from "./wp-images";
 
 /**
  * WordPress REST API post shape (relevant fields only).
@@ -16,12 +23,17 @@ interface WPPost {
 	slug: string;
 	date: string;
 	modified: string;
+	featured_media?: number;
 	title: { rendered: string };
 	content: { rendered: string };
 	excerpt: { rendered: string };
 	categories: number[];
 	_embedded?: {
 		"wp:term"?: Array<Array<{ slug: string; taxonomy: string }>>;
+		"wp:featuredmedia"?: Array<{
+			source_url?: string;
+			alt_text?: string;
+		}>;
 	};
 }
 
@@ -137,7 +149,10 @@ function createTurndown(): TurndownService {
  * 4. Clean up artifacts (excess newlines, stray comments).
  * 5. Fix whitespace around headings, lists, code blocks.
  */
-function htmlToMarkdown(html: string): string {
+async function htmlToMarkdown(
+	html: string,
+	downloader?: ImageDownloader,
+): Promise<string> {
 	if (!html || !html.trim()) return "";
 
 	const turndown = createTurndown();
@@ -148,6 +163,11 @@ function htmlToMarkdown(html: string): string {
 	// Step 2: Remove empty paragraphs and inline styles.
 	cleaned = cleaned.replace(/<p>\s*<\/p>/g, "");
 	cleaned = cleaned.replace(/\s*style="[^"]*"/g, "");
+
+	// Step 2b: Download images and rewrite src to local public paths.
+	if (downloader) {
+		cleaned = await rewriteImageUrls(cleaned, downloader);
+	}
 
 	// Step 3: Convert to Markdown.
 	let md = turndown.turndown(cleaned);
@@ -241,7 +261,7 @@ async function fetchAllPosts(
 		postType === "post" ? "posts" : postType === "page" ? "pages" : postType;
 
 	while (true) {
-		const url = `${baseUrl}/wp-json/wp/v2/${endpoint}?per_page=${perPage}&page=${page}&_embed=wp:term&status=publish`;
+		const url = `${baseUrl}/wp-json/wp/v2/${endpoint}?per_page=${perPage}&page=${page}&_embed=wp:term,wp:featuredmedia&status=publish`;
 
 		const response = await wpFetch(url, credentials);
 
@@ -394,20 +414,47 @@ export function wpLoader(): Loader {
 					`Synced ${categories.list.length} categories from WordPress.`,
 				);
 
+				// Set up image downloader. Images are pulled into the project's
+				// public directory so they ship with the Astro build.
+				const imageConfig = resolveImageConfig(
+					(config as { images?: Partial<ImageConfig> }).images,
+				);
+				const credentials = btoa(`${auth.username}:${auth.password}`);
+				const downloader = createImageDownloader(
+					process.cwd(),
+					imageConfig,
+					(imageUrl) => wpFetch(imageUrl, credentials),
+				);
+
 				const processor = await createMarkdownProcessor({});
 
 				for (const post of posts) {
 					const category = resolveCategory(post, categories.map);
-					const body = htmlToMarkdown(post.content.rendered);
+					const body = await htmlToMarkdown(post.content.rendered, downloader);
 					const rendered = await processor.render(body);
+
+					const data: Record<string, unknown> = {
+						title: decodeHtmlEntities(post.title.rendered),
+						category,
+						pubDate: new Date(post.date),
+					};
+
+					// Featured image: only write when user explicitly configured a field name.
+					if (imageConfig.featuredImageField !== "auto") {
+						const media = post._embedded?.["wp:featuredmedia"]?.[0];
+						const featuredUrl = media?.source_url;
+						if (featuredUrl) {
+							const localPath = await downloader.process(featuredUrl);
+							data[imageConfig.featuredImageField] = localPath;
+							if (media?.alt_text) {
+								data[`${imageConfig.featuredImageField}Alt`] = media.alt_text;
+							}
+						}
+					}
 
 					store.set({
 						id: post.slug,
-						data: {
-							title: decodeHtmlEntities(post.title.rendered),
-							category,
-							pubDate: new Date(post.date),
-						},
+						data,
 						body,
 						rendered: {
 							html: rendered.code,

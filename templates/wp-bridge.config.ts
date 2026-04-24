@@ -24,4 +24,27 @@ export default {
 		// that changes on every start.
 		hostname: "",
 	},
+	images: {
+		// Where image handling writes the collection entry's featured image.
+		// "auto" = skip featured image (default, safe).
+		// Set to a string like "heroImage" or "featuredImage" to match your
+		// content collection schema. During `wp:setup`, the AI agent should
+		// scan src/content.config.ts and rewrite this value automatically.
+		// When set, the loader also writes `<field>Alt` with the image's alt_text.
+		featuredImageField: "auto",
+
+		// Local destination for downloaded images (relative to project root).
+		// Anything under public/ is served as-is by Astro at runtime.
+		downloadDir: "public/wp-images",
+
+		// Public URL prefix used to reference the images in rendered content.
+		publicPath: "/wp-images",
+
+		// How to decide whether to re-download an already-present file:
+		// - "hash":            re-download only when the URL changes (filename
+		//                      embeds a hash of the URL). Best default.
+		// - "always-refresh":  always re-download (slow, forces freshness).
+		// - "skip-existing":   never re-download once a file is on disk.
+		cacheStrategy: "hash",
+	},
 };

@@ -23,3 +23,15 @@ All dependencies (turndown, wrangler, etc.) are included — no additional insta
 - The `merged-categories.ts` import path for category config must match the target project's actual config file location and structure.
 - After installation, run `npm run wp:setup` and verify with `npm run dev`.
 - If the target project uses pnpm or yarn, use the corresponding package manager commands.
+
+## Image handling setup (run after installation)
+
+The loader downloads WordPress images into `public/wp-images/` so they ship with the Astro build (no more dependency on the WP tunnel for images in production). Inline images work out of the box. Featured images require one small wiring step — do this after `npm install`:
+
+1. Open the target project's `src/content.config.ts` (or `src/content/config.ts`).
+2. Inspect each WordPress-backed collection's schema for an image-like field. Common names: `heroImage`, `featuredImage`, `cover`, `image`, `thumbnail`.
+3. In `wp-bridge.config.ts`, set `images.featuredImageField` to the exact field name you found. Keep the matching alt-text field (`<field>Alt`) in the schema if the theme uses it.
+4. If no such field exists but the user wants featured images, add one to the schema (e.g. `heroImage: z.string().optional()`, `heroImageAlt: z.string().optional()`) and set `featuredImageField` accordingly.
+5. If the user does not want featured images at all, leave `featuredImageField: "auto"` (the loader will skip it).
+
+The schema field naming is project-specific — always read the actual file, do not assume.

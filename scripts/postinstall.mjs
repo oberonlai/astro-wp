@@ -166,6 +166,12 @@ copyIfMissing(
 	"src/loaders/turndown-plugin-gfm.d.ts",
 );
 
+copyIfMissing(
+	resolve(PKG_ROOT, "packages/core/loaders/wp-images.ts"),
+	resolve(projectRoot, "src/loaders/wp-images.ts"),
+	"src/loaders/wp-images.ts",
+);
+
 // --- 3b. Integration file ---
 
 const integrationSrc = resolve(PKG_ROOT, "packages/core/integrations/wp-dev-reload.ts");
@@ -282,7 +288,11 @@ if (existsSync(pkgPath)) {
 // --- 6. Update .gitignore ---
 
 const gitignorePath = resolve(projectRoot, ".gitignore");
-const ignoreEntries = ["wordpress/site/", "src/config/wp-categories.json"];
+const ignoreEntries = [
+	"wordpress/site/",
+	"src/config/wp-categories.json",
+	"public/wp-images/",
+];
 
 if (existsSync(gitignorePath)) {
 	let content = readFileSync(gitignorePath, "utf-8");
