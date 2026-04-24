@@ -141,61 +141,49 @@ copyDirIfMissing(
 	"wordpress/plugins/astro-cms-connect/",
 );
 
-// --- 3. Loader files ---
+// --- 3. Loader & integration files ---
 
-const loaderSrc = resolve(PKG_ROOT, "packages/core/loaders/wordpress.ts");
-const loaderDest = resolve(projectRoot, "src/loaders/wordpress.ts");
-
-if (!existsSync(loaderDest)) {
-	mkdirSync(dirname(loaderDest), { recursive: true });
-	// Fix import path: from packages/core/loaders/ (3 levels) to src/loaders/ (2 levels).
-	let loaderContent = readFileSync(loaderSrc, "utf-8");
-	loaderContent = loaderContent.replace(
-		/from\s+["']\.\.\/\.\.\/\.\.\/wp-bridge\.config["']/,
-		'from "../../wp-bridge.config"',
-	);
-	writeFileSync(loaderDest, loaderContent, "utf-8");
-	console.log("  + src/loaders/wordpress.ts");
-} else {
-	console.log("  ✓ src/loaders/wordpress.ts (already exists)");
+/**
+ * Copy every .ts / .d.ts from a source directory into a destination, fixing
+ * the relative import path to wp-bridge.config along the way.
+ *
+ * Files in packages/core/<kind>/ import wp-bridge.config via "../../../"
+ * (3 levels up). When copied to src/<kind>/ they only need "../../" (2
+ * levels up). This rewrite keeps the source tree generic while letting
+ * every new file work without editing postinstall.
+ */
+function copyCoreDir(srcDir, destDir, kind) {
+	if (!existsSync(srcDir)) return;
+	mkdirSync(destDir, { recursive: true });
+	for (const entry of readdirSync(srcDir)) {
+		if (!entry.endsWith(".ts") && !entry.endsWith(".d.ts")) continue;
+		const src = join(srcDir, entry);
+		const dest = join(destDir, entry);
+		const label = `src/${kind}/${entry}`;
+		if (existsSync(dest)) {
+			console.log(`  ✓ ${label} (already exists)`);
+			continue;
+		}
+		const content = readFileSync(src, "utf-8").replace(
+			/from\s+(["'])\.\.\/\.\.\/\.\.\/wp-bridge\.config\1/g,
+			'from "../../wp-bridge.config"',
+		);
+		writeFileSync(dest, content, "utf-8");
+		console.log(`  + ${label}`);
+	}
 }
 
-copyIfMissing(
-	resolve(PKG_ROOT, "packages/core/loaders/turndown-plugin-gfm.d.ts"),
-	resolve(projectRoot, "src/loaders/turndown-plugin-gfm.d.ts"),
-	"src/loaders/turndown-plugin-gfm.d.ts",
+copyCoreDir(
+	resolve(PKG_ROOT, "packages/core/loaders"),
+	resolve(projectRoot, "src/loaders"),
+	"loaders",
 );
 
-copyIfMissing(
-	resolve(PKG_ROOT, "packages/core/loaders/wp-images.ts"),
-	resolve(projectRoot, "src/loaders/wp-images.ts"),
-	"src/loaders/wp-images.ts",
+copyCoreDir(
+	resolve(PKG_ROOT, "packages/core/integrations"),
+	resolve(projectRoot, "src/integrations"),
+	"integrations",
 );
-
-copyIfMissing(
-	resolve(PKG_ROOT, "packages/core/loaders/wp-snapshot.ts"),
-	resolve(projectRoot, "src/loaders/wp-snapshot.ts"),
-	"src/loaders/wp-snapshot.ts",
-);
-
-// --- 3b. Integration file ---
-
-const integrationSrc = resolve(PKG_ROOT, "packages/core/integrations/wp-dev-reload.ts");
-const integrationDest = resolve(projectRoot, "src/integrations/wp-dev-reload.ts");
-
-if (!existsSync(integrationDest)) {
-	mkdirSync(dirname(integrationDest), { recursive: true });
-	// Fix import path: from packages/core/integrations/ (3 levels) to src/integrations/ (2 levels).
-	let integrationContent = readFileSync(integrationSrc, "utf-8");
-	integrationContent = integrationContent.replace(
-		/from\s+["']\.\.\/\.\.\/\.\.\/wp-bridge\.config["']/,
-		'from "../../wp-bridge.config"',
-	);
-	writeFileSync(integrationDest, integrationContent, "utf-8");
-	console.log("  + src/integrations/wp-dev-reload.ts");
-} else {
-	console.log("  ✓ src/integrations/wp-dev-reload.ts (already exists)");
-}
 
 // --- 4. Ensure all required dependencies are present ---
 
