@@ -380,5 +380,10 @@ console.log("  │  Expose local WP to the internet (optional, do last):     │
 console.log("  │  - Run: npm run wp:tunnel                                │");
 console.log("  │    (Set tunnel.hostname in wp-bridge.config.ts for a     │");
 console.log("  │     fixed URL; empty = temporary trycloudflare URL.)     │");
+console.log("  │                                                          │");
+console.log("  │  Snapshot mode (for Cloudflare Git integration):         │");
+console.log("  │  - wp:deploy auto-commits src/config/wp-snapshot/ and    │");
+console.log("  │    public/wp-images/ so cloud builds can read them       │");
+console.log("  │    without reaching localhost WordPress.                 │");
 console.log("  └──────────────────────────────────────────────────────────┘");
 console.log("");

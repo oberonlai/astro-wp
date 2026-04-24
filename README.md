@@ -290,6 +290,61 @@ Cross-platform: uses the npm `cloudflared` package which bundles the binary for 
 
 **This step is interactive on first run (browser login). Do not block the rest of the installation on it.**
 
+## Snapshot Mode (Git-based Cloud Deploy)
+
+When the Cloudflare Git integration rebuilds your site, its build server cannot reach `localhost:8888` — it would produce a site with empty WordPress content and overwrite anything deployed via `wp:deploy`.
+
+Snapshot mode solves this: the loader writes fully processed posts (Markdown converted, image URLs already rewritten) to `src/config/wp-snapshot/` during every live fetch, and reads from that directory when live WordPress isn't available.
+
+### How it works
+
+```
+npm run dev                → live fetch → snapshot written → dev uses live
+npm run build (local)      → live fetch → snapshot written → build uses live
+wp-deploy webhook triggers → astro build → snapshot written → git commit + push → wrangler deploy
+Cloudflare Git build       → no WP access → reads snapshot from repo ✓
+```
+
+### Snapshot layout
+
+```
+src/config/wp-snapshot/
+├── index.json           # id → { slug, modified } + categories
+└── posts/
+    ├── 1.json           # fully processed post (data + body)
+    └── 42.json
+```
+
+One file per post keeps git diffs readable and incremental. File size averages 5–15 KB per post. A 1000-post site stays around 10 MB in git.
+
+### Loader priority
+
+```
+dev mode (npm run dev)          → live fetch
+WP_LIVE=true env var            → live fetch (manual override)
+snapshot exists + not dev       → read snapshot
+no snapshot yet                 → fall back to live fetch
+```
+
+### Auto commit & push
+
+`wp:deploy` after each successful build:
+
+1. `git add src/config/wp-snapshot/ public/wp-images/`
+2. Commits with message `content(wp): 同步 N 篇文章快照`
+3. Pushes to remote — triggers Cloudflare Git rebuild
+4. Runs `wrangler deploy` locally too for fast preview
+
+Push failures (network, conflict) are logged and retried on the next webhook — non-fatal.
+
+### Disabling snapshot
+
+Set `snapshot.enabled: false` in `wp-bridge.config.ts`. The loader reverts to live-only behavior (original mode).
+
+### Bootstrap
+
+The first `wp:deploy` (or `npm run dev` with WP running) auto-creates the snapshot. No manual command required.
+
 ## Cross-Agent Skill
 
 The Cloudflare Tunnel setup is packaged as a reusable skill. It tells any AI agent how to ask the user about their domain choice and drive `npm run wp:tunnel` correctly.

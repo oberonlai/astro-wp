@@ -24,6 +24,15 @@ export default {
 		// that changes on every start.
 		hostname: "",
 	},
+	snapshot: {
+		// When enabled, the loader writes fully processed posts to `dir` during
+		// live fetches (npm run dev / npm run build). When not in dev and
+		// WP_LIVE is not set, the loader reads from the snapshot instead of WP.
+		// This lets Cloudflare Workers / CI builds that cannot reach localhost
+		// WordPress still produce the site from committed files.
+		enabled: true,
+		dir: "src/config/wp-snapshot",
+	},
 	images: {
 		// Where image handling writes the collection entry's featured image.
 		// "auto" = skip featured image (default, safe).

@@ -72,6 +72,74 @@ function runCommand(command, args) {
 }
 
 /**
+ * Run a command, capture stdout, and return it. Does not throw on non-zero
+ * exit — callers decide how to react.
+ */
+function capture(command, args) {
+	return new Promise((resolveCap) => {
+		const proc = spawn(command, args, { cwd: ROOT, shell: true });
+		let out = "";
+		let err = "";
+		proc.stdout?.on("data", (c) => (out += c.toString()));
+		proc.stderr?.on("data", (c) => (err += c.toString()));
+		proc.on("close", (code) => resolveCap({ code, stdout: out, stderr: err }));
+		proc.on("error", () => resolveCap({ code: 1, stdout: out, stderr: err }));
+	});
+}
+
+/**
+ * Commit and push snapshot + image changes after a build so the
+ * Cloudflare Git integration can rebuild from committed files.
+ *
+ * Paths tracked:
+ *   - src/config/wp-snapshot/   (content source of truth)
+ *   - public/wp-images/         (referenced by snapshot entries)
+ *
+ * Skipped silently when the project is not a git repo, when there are
+ * no changes to those paths, or when push fails (logged, non-fatal).
+ */
+async function commitSnapshot() {
+	const isRepo = await capture("git", ["rev-parse", "--is-inside-work-tree"]);
+	if (isRepo.code !== 0) {
+		console.log("  [deploy] Not a git repo, skipping snapshot commit.");
+		return;
+	}
+
+	const paths = ["src/config/wp-snapshot", "public/wp-images"];
+	await capture("git", ["add", "--", ...paths]);
+
+	const diff = await capture("git", ["diff", "--cached", "--quiet", "--", ...paths]);
+	if (diff.code === 0) {
+		console.log("  [deploy] Snapshot unchanged, skipping commit.");
+		return;
+	}
+
+	const count = await capture("git", [
+		"diff",
+		"--cached",
+		"--name-only",
+		"--",
+		"src/config/wp-snapshot/posts",
+	]);
+	const changed = count.stdout.split("\n").filter(Boolean).length;
+	const msg = `content(wp): 同步 ${changed} 篇文章快照`;
+
+	const commit = await capture("git", ["commit", "-m", msg]);
+	if (commit.code !== 0) {
+		console.error("  [deploy] Snapshot commit failed:", commit.stderr.trim());
+		return;
+	}
+	console.log(`  [deploy] Snapshot committed: ${msg}`);
+
+	const push = await capture("git", ["push"]);
+	if (push.code !== 0) {
+		console.error("  [deploy] Snapshot push failed (will retry next time):", push.stderr.trim());
+		return;
+	}
+	console.log("  [deploy] Snapshot pushed to remote.");
+}
+
+/**
  * Execute build and deploy pipeline.
  */
 async function deploy() {
@@ -87,6 +155,9 @@ async function deploy() {
 	try {
 		console.log("\n  [deploy] Starting astro build...");
 		await runCommand("npm", ["run", "build"]);
+
+		console.log("  [deploy] Committing snapshot + images to git...");
+		await commitSnapshot();
 
 		console.log("  [deploy] Build complete. Deploying to Cloudflare...");
 		await runCommand("npx", ["wrangler", "deploy"]);

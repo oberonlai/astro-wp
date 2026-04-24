@@ -14,6 +14,14 @@ import {
 	resolveImageConfig,
 	rewriteImageUrls,
 } from "./wp-images";
+import {
+	hasSnapshot,
+	readSnapshot,
+	resolveSnapshotDir,
+	type SnapshotCategory,
+	type SnapshotEntry,
+	writeSnapshot,
+} from "./wp-snapshot";
 
 /**
  * WordPress REST API post shape (relevant fields only).
@@ -326,11 +334,7 @@ async function fetchCategories(
 /**
  * Write WordPress categories to a JSON file for Astro pages to merge.
  */
-function writeCategoryFile(categories: WPCategory[]): void {
-	const filtered = categories
-		.filter((c) => c.slug !== "uncategorized")
-		.map((c) => ({ title: c.name, id: c.slug }));
-
+function writeCategoryFile(categories: SnapshotCategory[]): void {
 	const outputPath = resolve(
 		import.meta.dirname || ".",
 		"../config/wp-categories.json",
@@ -338,9 +342,19 @@ function writeCategoryFile(categories: WPCategory[]): void {
 
 	writeFileSync(
 		outputPath,
-		JSON.stringify({ news: filtered }, null, 2) + "\n",
+		JSON.stringify({ news: categories }, null, 2) + "\n",
 		"utf-8",
 	);
+}
+
+/**
+ * Convert fetched WordPress categories into snapshot category format,
+ * filtering out the default "uncategorized" bucket.
+ */
+function toSnapshotCategories(categories: WPCategory[]): SnapshotCategory[] {
+	return categories
+		.filter((c) => c.slug !== "uncategorized")
+		.map((c) => ({ id: c.slug, title: c.name }));
 }
 
 /**
@@ -390,6 +404,35 @@ export function wpLoader(): Loader {
 		async load({ store, logger }) {
 			const { url, auth } = config.wordpress;
 
+			// Snapshot mode: read from disk when enabled and snapshot exists.
+			// Skipped in dev (always want live), or when WP_LIVE is explicitly set.
+			const snapshotCfg = (config as { snapshot?: { enabled?: boolean; dir?: string } })
+				.snapshot;
+			const snapshotDir = resolveSnapshotDir(process.cwd(), snapshotCfg?.dir);
+			const snapshotEnabled = snapshotCfg?.enabled !== false;
+			const preferLive = process.env.WP_LIVE === "true" || import.meta.env?.DEV;
+
+			if (snapshotEnabled && !preferLive && hasSnapshot(snapshotDir)) {
+				logger.info(`Loading posts from snapshot: ${snapshotDir}`);
+				const { posts, categories } = readSnapshot(snapshotDir);
+				writeCategoryFile(categories);
+				const processor = await createMarkdownProcessor({});
+				for (const entry of posts) {
+					const rendered = await processor.render(entry.body);
+					store.set({
+						id: entry.slug,
+						data: entry.data,
+						body: entry.body,
+						rendered: {
+							html: rendered.code,
+							metadata: rendered.metadata as Record<string, unknown>,
+						},
+					});
+				}
+				logger.info(`Loaded ${posts.length} posts from snapshot.`);
+				return;
+			}
+
 			if (!auth.password) {
 				logger.warn(
 					"WordPress Application Password not set in wp-bridge.config.ts — skipping WordPress content.",
@@ -409,9 +452,10 @@ export function wpLoader(): Loader {
 				logger.info(`Fetched ${posts.length} posts from WordPress.`);
 
 				// Write WordPress categories to JSON for Astro pages to merge.
-				writeCategoryFile(categories.list);
+				const snapshotCategories = toSnapshotCategories(categories.list);
+				writeCategoryFile(snapshotCategories);
 				logger.info(
-					`Synced ${categories.list.length} categories from WordPress.`,
+					`Synced ${snapshotCategories.length} categories from WordPress.`,
 				);
 
 				// Set up image downloader. Images are pulled into the project's
@@ -427,6 +471,7 @@ export function wpLoader(): Loader {
 				);
 
 				const processor = await createMarkdownProcessor({});
+				const snapshotEntries: SnapshotEntry[] = [];
 
 				for (const post of posts) {
 					const category = resolveCategory(post, categories.map);
@@ -461,6 +506,28 @@ export function wpLoader(): Loader {
 							metadata: rendered.metadata as Record<string, unknown>,
 						},
 					});
+
+					snapshotEntries.push({
+						id: post.id,
+						slug: post.slug,
+						modified: post.modified,
+						data,
+						body,
+					});
+				}
+
+				// Persist snapshot so cloud builds (which can't reach localhost WP)
+				// can still produce the site from the committed files.
+				if (snapshotEnabled) {
+					const result = writeSnapshot(
+						snapshotDir,
+						snapshotEntries,
+						snapshotCategories,
+						url,
+					);
+					logger.info(
+						`Snapshot updated: ${result.written} written, ${result.removed} removed (${snapshotDir}).`,
+					);
 				}
 
 				console.log("");
