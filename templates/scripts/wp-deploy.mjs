@@ -242,8 +242,20 @@ function handleRequest(req, res) {
 	res.end("Not found");
 }
 
-// Start server.
+// Start server. If the port is already bound (usually an orphaned process
+// from a previous dev session), assume another instance is already serving
+// webhooks and exit quietly so we don't crash the concurrent `npm run dev`.
 const server = createServer(handleRequest);
+server.on("error", (err) => {
+	if (err.code === "EADDRINUSE") {
+		console.log(
+			`\n  [deploy-server] Port ${PORT} already in use — another wp-deploy is likely running. Skipping.\n  (To free it: lsof -ti :${PORT} | xargs kill -9)\n`,
+		);
+		process.exit(0);
+	}
+	console.error(`\n  [deploy-server] Failed to start:`, err.message);
+	process.exit(1);
+});
 server.listen(PORT, () => {
 	console.log(`\n  [deploy-server] Listening on http://localhost:${PORT}`);
 	console.log(`  [deploy-server] Webhook endpoint: http://localhost:${PORT}/webhook`);
