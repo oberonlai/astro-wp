@@ -172,6 +172,12 @@ copyIfMissing(
 	"src/loaders/wp-images.ts",
 );
 
+copyIfMissing(
+	resolve(PKG_ROOT, "packages/core/loaders/wp-snapshot.ts"),
+	resolve(projectRoot, "src/loaders/wp-snapshot.ts"),
+	"src/loaders/wp-snapshot.ts",
+);
+
 // --- 3b. Integration file ---
 
 const integrationSrc = resolve(PKG_ROOT, "packages/core/integrations/wp-dev-reload.ts");
