@@ -18,4 +18,10 @@ export default {
 			collection: "wpNews",
 		},
 	},
+	tunnel: {
+		// Optional: set to a hostname on a domain you own in Cloudflare (e.g. "wp.example.com")
+		// for a permanent tunnel URL. Leave empty to use a temporary trycloudflare.com URL
+		// that changes on every start.
+		hostname: "",
+	},
 };

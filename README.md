@@ -273,6 +273,59 @@ npx wrangler login
 
 This opens a browser for Cloudflare OAuth. Only needs to be done once per machine. Required for `npm run wp:deploy` to work. **This step is interactive and requires the user to complete manually — do not block the rest of the installation on this step.**
 
+### Step 11: Expose local WordPress to the internet (optional, do last)
+
+If editors, clients, or external build pipelines need to reach the local WordPress, expose it via Cloudflare Tunnel.
+
+```bash
+npm run wp:tunnel
+```
+
+Two modes (auto-selected based on `wp-bridge.config.ts`):
+
+- **Temporary URL** — leave `tunnel.hostname` empty. Prints a `xxx.trycloudflare.com` URL that **changes every start**. Zero setup.
+- **Permanent URL** — set `tunnel.hostname` to a subdomain on a domain you own in Cloudflare (e.g. `"wp.example.com"`). First run prompts for `cloudflared tunnel login` (browser OAuth), then the script auto-creates the tunnel, DNS record, and config file.
+
+Cross-platform: uses the npm `cloudflared` package which bundles the binary for macOS / Windows / Linux — no manual install needed.
+
+**This step is interactive on first run (browser login). Do not block the rest of the installation on it.**
+
+## Cross-Agent Skill
+
+The Cloudflare Tunnel setup is packaged as a reusable skill. It tells any AI agent how to ask the user about their domain choice and drive `npm run wp:tunnel` correctly.
+
+### Automatic installation
+
+`npm install github:oberonlai/astro-wp` writes the skill into the target project automatically. No manual copy needed:
+
+| Path | Agent |
+|---|---|
+| `.claude/skills/astro-wp-tunnel/SKILL.md` | Claude Code (project-local) |
+| `.cursor/rules/astro-wp-tunnel.mdc` | Cursor |
+| `AGENTS.md` (reference entry appended) | Codex CLI, Antigravity, any AGENTS.md-aware agent |
+
+The AI agent picks it up on the next conversation in this project — no config required.
+
+### When the skill triggers
+
+The skill's frontmatter declares triggers like:
+
+- 本地 WordPress 要讓別人看到
+- 要把 localhost:8888 曝露到外網
+- 建立 Cloudflare Tunnel
+
+When the user asks any of these, the agent should follow the skill's flow: ask about the domain, update `wp-bridge.config.ts`, run `npm run wp:tunnel`, and warn about the temp URL caveat if applicable.
+
+### Installing globally (optional)
+
+If you want the skill available in every project without re-install:
+
+```bash
+# Claude Code global
+mkdir -p ~/.claude/skills/astro-wp-tunnel \
+  && cp node_modules/astro-wp/skills/cloudflare-tunnel/SKILL.md ~/.claude/skills/astro-wp-tunnel/SKILL.md
+```
+
 ## How It Works
 
 ### Content Flow

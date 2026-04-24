@@ -17,9 +17,11 @@
     "templates/",
     "packages/core/",
     "packages/wordpress-plugin/",
+    "skills/",
     "README.md"
   ],
   "dependencies": {
+    "cloudflared": "^0.7.0",
     "turndown": "^7.2.4",
     "turndown-plugin-gfm": "^1.0.2",
     "wrangler": "^4.0.0"

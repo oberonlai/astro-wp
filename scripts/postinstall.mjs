@@ -111,6 +111,12 @@ copyIfMissing(
 	"scripts/wp-deploy.mjs",
 );
 
+copyIfMissing(
+	resolve(PKG_ROOT, "templates/scripts/wp-tunnel.mjs"),
+	resolve(projectRoot, "scripts/wp-tunnel.mjs"),
+	"scripts/wp-tunnel.mjs",
+);
+
 // --- 1b. Pre-create required directories ---
 
 const wpSiteDir = resolve(projectRoot, "wordpress/site");
@@ -210,6 +216,7 @@ if (existsSync(pkgPath)) {
 	// but add them to the target project too for when astro-wp is uninstalled).
 	depsChanged = ensureDep(pkgCheck, "turndown", "^7.2.4", false) || depsChanged;
 	depsChanged = ensureDep(pkgCheck, "turndown-plugin-gfm", "^1.0.2", false) || depsChanged;
+	depsChanged = ensureDep(pkgCheck, "cloudflared", "^0.7.0", false) || depsChanged;
 
 	// Dev dependencies.
 	depsChanged = ensureDep(pkgCheck, "@types/turndown", "^5.0.6", true) || depsChanged;
@@ -237,6 +244,11 @@ if (existsSync(pkgPath)) {
 		changed = true;
 	}
 
+	if (!pkg.scripts["wp:tunnel"]) {
+		pkg.scripts["wp:tunnel"] = "node scripts/wp-tunnel.mjs";
+		changed = true;
+	}
+
 	const isWindows = process.platform === "win32";
 
 	const wpStartCmd = isWindows
@@ -261,7 +273,7 @@ if (existsSync(pkgPath)) {
 
 	if (changed) {
 		writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
-		console.log("  + package.json scripts (wp:setup, wp:start, wp:deploy, dev)");
+		console.log("  + package.json scripts (wp:setup, wp:start, wp:deploy, wp:tunnel, dev)");
 	} else {
 		console.log("  ✓ package.json scripts (already configured)");
 	}
@@ -294,6 +306,47 @@ if (existsSync(gitignorePath)) {
 	console.log("  + .gitignore (created)");
 }
 
+// --- 7. Install cross-agent skill into project-local conventions ---
+
+const skillSrc = resolve(PKG_ROOT, "skills/cloudflare-tunnel/SKILL.md");
+
+if (existsSync(skillSrc)) {
+	// Claude Code (project-local).
+	copyIfMissing(
+		skillSrc,
+		resolve(projectRoot, ".claude/skills/astro-wp-tunnel/SKILL.md"),
+		".claude/skills/astro-wp-tunnel/SKILL.md",
+	);
+
+	// Cursor (rename extension to .mdc, content is compatible).
+	const cursorPath = resolve(projectRoot, ".cursor/rules/astro-wp-tunnel.mdc");
+	if (!existsSync(cursorPath)) {
+		mkdirSync(dirname(cursorPath), { recursive: true });
+		copyFileSync(skillSrc, cursorPath);
+		console.log("  + .cursor/rules/astro-wp-tunnel.mdc");
+	} else {
+		console.log("  ✓ .cursor/rules/astro-wp-tunnel.mdc (already exists)");
+	}
+
+	// Codex / Antigravity / other AGENTS.md-aware agents.
+	const agentsPath = resolve(projectRoot, "AGENTS.md");
+	const agentsRef =
+		"\n## astro-wp tunnel\n\nFor exposing the local WordPress to the internet via Cloudflare Tunnel, follow `.claude/skills/astro-wp-tunnel/SKILL.md`.\n";
+
+	if (existsSync(agentsPath)) {
+		const agentsContent = readFileSync(agentsPath, "utf-8");
+		if (!agentsContent.includes("astro-wp-tunnel")) {
+			writeFileSync(agentsPath, agentsContent.trimEnd() + "\n" + agentsRef, "utf-8");
+			console.log("  + AGENTS.md (appended tunnel skill reference)");
+		} else {
+			console.log("  ✓ AGENTS.md (already references tunnel skill)");
+		}
+	} else {
+		writeFileSync(agentsPath, "# Agent Instructions\n" + agentsRef, "utf-8");
+		console.log("  + AGENTS.md (created with tunnel skill reference)");
+	}
+}
+
 // --- Done ---
 
 console.log("");
@@ -312,5 +365,10 @@ console.log("  │                                                          │"
 console.log("  │  Deploy (do last, requires user interaction):             │");
 console.log("  │  1. Run: npx wrangler login (Cloudflare OAuth)           │");
 console.log("  │  2. Run: npm run wp:deploy (local deploy server)         │");
+console.log("  │                                                          │");
+console.log("  │  Expose local WP to the internet (optional, do last):     │");
+console.log("  │  - Run: npm run wp:tunnel                                │");
+console.log("  │    (Set tunnel.hostname in wp-bridge.config.ts for a     │");
+console.log("  │     fixed URL; empty = temporary trycloudflare URL.)     │");
 console.log("  └──────────────────────────────────────────────────────────┘");
 console.log("");
